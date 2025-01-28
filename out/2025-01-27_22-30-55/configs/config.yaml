@@ -1,0 +1,62 @@
+datamodule:
+  _target_: src.datamodules.dataset.COASTALDataModule
+  batch_size: 64
+  num_workers: 3
+  data_dir: ${paths.data_dir}
+module:
+  _target_: src.modules.model.COASTALResNet50
+  num_classes: 8
+  lr: 0.01
+  momentum: 0.0
+  nesterov: false
+  weight_decay: 0.0
+  factor: 0.1
+  patience: 10
+  frozen_layers: []
+  use_pretrained: false
+  fine_tune: true
+trainer:
+  _target_: lightning.pytorch.Trainer
+  default_root_dir: ${paths.output_dir}
+  fast_dev_run: false
+  accelerator: auto
+  strategy: auto
+  devices: auto
+  precision: 32-true
+  min_epochs: 1
+  max_epochs: 10
+  num_nodes: 1
+  sync_batchnorm: false
+  gradient_clip_val: null
+  gradient_clip_algorithm: norm
+  enable_progress_bar: true
+  profiler: simple
+  log_every_n_steps: 50
+  num_sanity_val_steps: 2
+  logger: ${logger}
+  callbacks:
+  - ${callback_ckpt}
+  - ${callback_lr_monitor}
+paths:
+  output_dir: out/2025-01-27_22-30-55
+  data_dir: /home/angelos.toutsios.gr/data/CS4321/HW1/teamsmt/data
+callback_ckpt:
+  _target_: lightning.pytorch.callbacks.ModelCheckpoint
+  filename: '{epoch}-{val_loss:.5f}'
+  save_top_k: 3
+  save_last: true
+  monitor: val_loss
+  mode: min
+callback_lr_monitor:
+  _target_: lightning.pytorch.callbacks.LearningRateMonitor
+  logging_interval: epoch
+callback_early_stopping:
+  _target_: lightning.pytorch.callbacks.EarlyStopping
+  monitor: val_loss
+  mode: min
+  patience: 3
+  verbose: false
+logger:
+  _target_: lightning.pytorch.loggers.CSVLogger
+  save_dir: ${paths.output_dir}
+  flush_logs_every_n_steps: 100

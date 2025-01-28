@@ -1,0 +1,3 @@
+batch_size: 64
+num_workers: 3
+data_dir: /home/angelos.toutsios.gr/data/CS4321/HW1/teamsmt/data
