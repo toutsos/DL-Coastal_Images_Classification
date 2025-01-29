@@ -36,6 +36,7 @@ def train(cfg):
     trainer.fit(**fit_kwargs)
 
     print("Starting test phase...")
+
     trainer.test(**fit_kwargs)  # Ensure test phase is executed
     print("Test phase completed.")
 

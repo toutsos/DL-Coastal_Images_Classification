@@ -6,6 +6,7 @@ import torch
 import src.plot_utils as plot_utils
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from itertools import chain
+import numpy as np
 
 class COASTALResNet50(pl.LightningModule):
   def __init__(self, **config):
@@ -42,28 +43,27 @@ class COASTALResNet50(pl.LightningModule):
         # Remove the default FC layer
         self.backbone.fc = nn.Identity()
 
-        # Generate Custom Fully Connected Layers
-        fc_layers = []
-
         # Add the Classifier
-        self.classifier = nn.Sequential(
-          nn.Linear(input_features, 1024),  # First hidden layer
+        # self.classifier = nn.Sequential(
+          # nn.Linear(input_features, 1024),  # First hidden layer
           # nn.BatchNorm1d(1024),
-          nn.ReLU(),
+          # nn.ReLU(),
           # nn.Dropout(0.5),  # Dropout for regularization
 
-          nn.Linear(1024, 512),  # Second hidden layer
+          # nn.Linear(1024, 512),  # Second hidden layer
           # nn.BatchNorm1d(512),
-          nn.ReLU(),
+          # nn.ReLU(),
           # nn.Dropout(0.5),
 
-          nn.Linear(512, 256),  # Third hidden layer
+          # nn.Linear(512, 256),  # Third hidden layer
           # nn.BatchNorm1d(256),
-          nn.ReLU(),
+          # nn.ReLU(),
           # nn.Dropout(0.5),
 
-          nn.Linear(256, self.num_classes)  # Output layer
-        )
+          # nn.Linear(256, self.num_classes)  # Output layer
+        # )
+
+        self.classifier = nn.Sequential(nn.Linear(input_features, self.num_classes))
 
         # Adjust the architecture for 224x224 images
         self.backbone.conv1 = nn.Conv2d(
@@ -250,7 +250,35 @@ class COASTALResNet50(pl.LightningModule):
 
   def on_test_epoch_end(self):
       print("Plotting test metrics...")
-      # plot_utils.plot_test_metrics(self.logger.log_dir)
+
+      # Extract embeddings and labels for visualization
+      all_embeddings = []
+      all_labels = []
+
+      dataloader = self.trainer.datamodule.test_dataloader()
+      self.eval()  # Ensure model is in eval mode
+      device = next(self.parameters()).device  # Get model device (CPU or GPU)
+
+      # Fetch dataset & extract label mapping
+      dataset = dataloader.dataset  # Access the ImageFolder dataset
+      label_names = {v: k for k, v in dataset.class_to_idx.items()}  # Maps indices to category names
+
+      with torch.no_grad():
+          for batch in dataloader:
+              x, y = batch
+              x = x.to(device)  # Move input to the same device as model
+              y = y.to(device)
+
+              embeddings = self.backbone(x).cpu().numpy()  # Move output to CPU before converting to numpy
+              all_embeddings.append(embeddings)
+              all_labels.append(y.cpu().numpy())  # Store labels as numpy arrays
+
+      all_embeddings = np.vstack(all_embeddings)
+      all_labels = np.concatenate(all_labels).flatten()  # ✅ Ensure 1D array
+
+      # Plot PCA and t-SNE visualizations
+      plot_utils.plot_pca(all_embeddings, labels=all_labels, label_names=label_names, save_path=f"{self.logger.log_dir}/pca.png")
+      plot_utils.plot_tsne(all_embeddings, labels=all_labels, label_names=label_names, save_path=f"{self.logger.log_dir}/tsne.png")
 
 
   def configure_optimizers(self):
