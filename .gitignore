@@ -4,3 +4,7 @@
 *.egg-info
 /data/*
 /out/*
+*.pyc
+*.pyo
+/outputs/*
+/eval/*

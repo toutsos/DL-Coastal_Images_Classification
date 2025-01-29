@@ -58,12 +58,12 @@ class COASTALDataModule (pl.LightningDataModule):
 
         """
         ImageFolder parameters:
-          - root (str or pathlib.Path) – Root directory path.
-          - transform (callable, optional) – A function/transform that takes in a PIL image and returns a transformed version
-          - target_transform (callable, optional) – A function/transform that takes in the target and transforms it.
-          - loader (callable, optional) – A function to load an image given its path.
-          - is_valid_file (callable, optional) – A function that takes path of an Image file and check if the file is a valid file (used to check of corrupt files)
-          - allow_empty – If True, empty folders are considered to be valid classes. An error is raised on empty folders if False (default).
+          - root (str or pathlib.Path) - Root directory path.
+          - transform (callable, optional) - A function/transform that takes in a PIL image and returns a transformed version
+          - target_transform (callable, optional) - A function/transform that takes in the target and transforms it.
+          - loader (callable, optional) - A function to load an image given its path.
+          - is_valid_file (callable, optional) - A function that takes path of an Image file and check if the file is a valid file (used to check of corrupt files)
+          - allow_empty - If True, empty folders are considered to be valid classes. An error is raised on empty folders if False (default).
         """
         if stage == 'fit' or stage is None:
             self.train_dset = datasets.ImageFolder(
@@ -76,6 +76,10 @@ class COASTALDataModule (pl.LightningDataModule):
             )
 
         if stage == 'test':
+            print(f"Looking for test dataset in: {self.data_dir}/test")
+            if not os.path.exists(f"{self.data_dir}/test"):
+                raise FileNotFoundError(f"Test dataset not found in: {self.data_dir}/test")
+
             self.test_dset = datasets.ImageFolder(
                 root=f"{self.data_dir}/test",
                 transform=self.test_transforms  # Same transforms as validation

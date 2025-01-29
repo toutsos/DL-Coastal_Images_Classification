@@ -33,7 +33,6 @@ class COASTALResNet50(pl.LightningModule):
             print("Using pretrained model with ResNet50_Weights.IMAGENET1K_V1")
             self.backbone = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
         else:
-            # model = torchvision.models.resnet50(weights=None, num_classes=self.num_classes)
             print("Using model without pretrained weights")
             self.backbone = torchvision.models.resnet50(weights=None)
 
@@ -46,9 +45,25 @@ class COASTALResNet50(pl.LightningModule):
         # Generate Custom Fully Connected Layers
         fc_layers = []
 
-        # Add the Final Classifier
-        fc_layers.append(nn.Linear(input_features, self.num_classes))
-        self.classifier = nn.Sequential(*fc_layers)
+        # Add the Classifier
+        self.classifier = nn.Sequential(
+          nn.Linear(input_features, 1024),  # First hidden layer
+          # nn.BatchNorm1d(1024),
+          nn.ReLU(),
+          # nn.Dropout(0.5),  # Dropout for regularization
+
+          nn.Linear(1024, 512),  # Second hidden layer
+          # nn.BatchNorm1d(512),
+          nn.ReLU(),
+          # nn.Dropout(0.5),
+
+          nn.Linear(512, 256),  # Third hidden layer
+          # nn.BatchNorm1d(256),
+          nn.ReLU(),
+          # nn.Dropout(0.5),
+
+          nn.Linear(256, self.num_classes)  # Output layer
+        )
 
         # Adjust the architecture for 224x224 images
         self.backbone.conv1 = nn.Conv2d(
@@ -59,16 +74,6 @@ class COASTALResNet50(pl.LightningModule):
             padding=self.backbone.conv1.padding,
             bias=False
         )
-
-        # Combine the backbone and classifier
-        # model = nn.Sequential(self.backbone, self.classifier)
-
-        # Since images are 299x299, max pooling could actually help reduce computation and improve feature hierarchy.
-        # model.maxpool = nn.Identity() # Remove the first pooling layer
-
-        # Assign the model to an instance variable
-        # self.resnet50 = model
-
 
         # Print the model's trainable parameters
         print("Trainable parameters:")
@@ -150,7 +155,7 @@ class COASTALResNet50(pl.LightningModule):
         # ResNet-50 already normalizes input features internally
         # x_normalized = self.batch_norm(x)  # Normalize input features
         x = self.backbone(x)
-        # x = self.pooling(x).squeeze()  # Apply pooling
+        # x = self.pooling(x).squeeze()  # Apply pooling , already included in the ResNet-50 model
         x = self.classifier(x)
         return x # Pass input features through model
 
@@ -245,7 +250,7 @@ class COASTALResNet50(pl.LightningModule):
 
   def on_test_epoch_end(self):
       print("Plotting test metrics...")
-      plot_utils.plot_test_metrics(self.logger.log_dir)
+      # plot_utils.plot_test_metrics(self.logger.log_dir)
 
 
   def configure_optimizers(self):
