@@ -8,19 +8,22 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from itertools import chain
 import numpy as np
 
-class COASTALResNet50(pl.LightningModule):
+class COASTALResNet50(pl.LightningModule,):
+
   def __init__(self, **config):
         super().__init__() # Initialize the parent LightningModule class
+
+        self.save_hyperparameters()
 
         # Number of classes
         self.num_classes  = config["num_classes"]
 
         # Optimizer configurations
-        self.lr           = config["lr"]
+
         self.momentum     = config["momentum"]
         self.nesterov     = config["nesterov"]
         self.weight_decay = config["weight_decay"]
-        self.frozen_layers= config["frozen_layers"]
+
 
         # Learning rate scheduler configurations
         self.factor   = config["factor"]
@@ -28,6 +31,9 @@ class COASTALResNet50(pl.LightningModule):
 
         self.use_pretrained = config["use_pretrained"]
         self.fine_tune = config["fine_tune"]
+        self.lr = config["lr"]
+        self.frozen_layers = config["frozen_layers"]
+
 
         if self.use_pretrained:
             # model = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1, num_classes=self.num_classes)
@@ -44,26 +50,26 @@ class COASTALResNet50(pl.LightningModule):
         self.backbone.fc = nn.Identity()
 
         # Add the Classifier
-        # self.classifier = nn.Sequential(
-          # nn.Linear(input_features, 1024),  # First hidden layer
-          # nn.BatchNorm1d(1024),
-          # nn.ReLU(),
-          # nn.Dropout(0.5),  # Dropout for regularization
+        self.classifier = nn.Sequential(
+          nn.Linear(input_features, 1024),  # First hidden layer
+          nn.BatchNorm1d(1024),
+          nn.ReLU(),
+          nn.Dropout(0.5),  # Dropout for regularization
 
-          # nn.Linear(1024, 512),  # Second hidden layer
-          # nn.BatchNorm1d(512),
-          # nn.ReLU(),
-          # nn.Dropout(0.5),
+          nn.Linear(1024, 512),  # Second hidden layer
+          nn.BatchNorm1d(512),
+          nn.ReLU(),
+          nn.Dropout(0.5),
 
-          # nn.Linear(512, 256),  # Third hidden layer
-          # nn.BatchNorm1d(256),
-          # nn.ReLU(),
-          # nn.Dropout(0.5),
+          nn.Linear(512, 256),  # Third hidden layer
+          nn.BatchNorm1d(256),
+          nn.ReLU(),
+          nn.Dropout(0.5),
 
-          # nn.Linear(256, self.num_classes)  # Output layer
-        # )
+          nn.Linear(256, self.num_classes)  # Output layer
+        )
 
-        self.classifier = nn.Sequential(nn.Linear(input_features, self.num_classes))
+        # self.classifier = nn.Sequential(nn.Linear(input_features, self.num_classes))
 
         # Adjust the architecture for 224x224 images
         self.backbone.conv1 = nn.Conv2d(
@@ -76,18 +82,24 @@ class COASTALResNet50(pl.LightningModule):
         )
 
         # Print the model's trainable parameters
-        print("Trainable parameters:")
-        for name, param in chain(self.backbone.named_parameters(), self.classifier.named_parameters()):
-          print(f"{name}: {param.requires_grad}")
+        # print("Trainable parameters:")
+        # for name, param in chain(self.backbone.named_parameters(), self.classifier.named_parameters()):
+        #   print(f"{name}: {param.requires_grad}")
 
         # Apply freezing logic
-        if not self.fine_tune:
+        if self.fine_tune == False:
+            print("Freezing all layers except the classifier")
             self.freeze_backbone()  # Freeze all layers except the classifier
+        else:
+            print("Fine-tuning all layers")
 
         # Apply specific layer freezing logic
         # Requires that the model can be fine-tuned
         if self.fine_tune and self.frozen_layers:
+            print("Specific layers for freeze, requested!")
             self.freeze_layers(self.frozen_layers)
+        else:
+            print("No specific layers for freeze requested!")
 
         # Batch normalization layer, already implemented in ResNet-50
         # self.batch_norm = nn.BatchNorm2d(num_features=model.conv1.in_channels)

@@ -9,7 +9,7 @@ datamodule:
   num_workers: 3
   data_dir: ${paths.data_dir}
 module:
-  _target_: src.modules.model.COASTALResNet50
+  _target_: src.modules.ResNet50Model.COASTALResNet50
   num_classes: 8
   lr: 1e-2
   momentum: 0.0
@@ -20,6 +20,8 @@ module:
   frozen_layers: []
   use_pretrained: false
   fine_tune: true
+  use_saved_model: false
+  load_model_path: "/home/angelos.toutsios.gr/data/CS4321/HW1/teamsmt/out/2025-01-31_13-30-37/lightning_logs/version_0/checkpoints/epoch=18-val_loss=0.67938.ckpt"
 
 trainer:
   _target_: lightning.pytorch.Trainer
@@ -30,7 +32,7 @@ trainer:
   devices: auto
   precision: 32-true
   min_epochs: 1
-  max_epochs: 10
+  max_epochs: 15
   num_nodes: 1
   sync_batchnorm: false
   gradient_clip_val: null
@@ -44,7 +46,7 @@ trainer:
   callbacks:
     - ${callback_ckpt}
     - ${callback_lr_monitor}
-    # - ${callback_early_stopping}
+    - ${callback_early_stopping}
 paths:
   output_dir: ./
   data_dir: ./
@@ -62,9 +64,10 @@ callback_early_stopping:
   _target_: lightning.pytorch.callbacks.EarlyStopping
   monitor: val_loss
   mode: min
-  patience: 3
+  patience: 5
   verbose: false
 logger:
   _target_: lightning.pytorch.loggers.CSVLogger
   save_dir: ${paths.output_dir}
   flush_logs_every_n_steps: 100
+

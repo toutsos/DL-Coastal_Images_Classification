@@ -41,16 +41,17 @@ srun --time=2:00:00 python src/train.py \
 --config-name COASTresnet50.yaml \
 'hydra.run.dir=${paths.output_dir}' \
 'datamodule.batch_size=64' \
-'datamodule.num_workers=3' \
-'module.lr=1e-2' \
+'datamodule.num_workers=16' \
+'module.lr=1e-3' \
 'module.momentum=0.0' \
 'module.nesterov=false' \
 'module.weight_decay=0.0' \
-'module.use_pretrained= true' \
-'module.fine_tune= false' \
+'module.use_pretrained=false' \
+'module.fine_tune=true' \
+'module.use_saved_model=false' \
 'trainer.num_nodes=1' \
 'trainer.precision=32-true' \
-'trainer.max_epochs=10' \
+'trainer.max_epochs=50' \
 'trainer.accelerator=auto' \
 'trainer.strategy=auto' \
 'trainer.devices=auto' \
@@ -60,3 +61,4 @@ srun --time=2:00:00 python src/train.py \
 'trainer.profiler=simple' \
 'paths.output_dir='${OUTPUT_DIR} \
 'paths.data_dir=/home/angelos.toutsios.gr/data/CS4321/HW1/teamsmt/data' \
+
