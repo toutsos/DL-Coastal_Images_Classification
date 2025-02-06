@@ -21,7 +21,7 @@ module:
   use_pretrained: false
   fine_tune: true
   use_saved_model: false
-  load_model_path: "/home/angelos.toutsios.gr/data/CS4321/HW1/teamsmt/out/2025-01-31_13-30-37/lightning_logs/version_0/checkpoints/epoch=18-val_loss=0.67938.ckpt"
+  load_model_path: "/home/angelos.toutsios.gr/data/CS4321/HW1/teamsmt/out/2025-02-03_22-03-44/lightning_logs/version_0/checkpoints/epoch=49-val_loss=0.63877.ckpt"
 
 trainer:
   _target_: lightning.pytorch.Trainer
@@ -64,7 +64,7 @@ callback_early_stopping:
   _target_: lightning.pytorch.callbacks.EarlyStopping
   monitor: val_loss
   mode: min
-  patience: 5
+  patience: 10
   verbose: false
 logger:
   _target_: lightning.pytorch.loggers.CSVLogger

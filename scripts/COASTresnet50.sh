@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=16
-#SBATCH --partition=genai,beards
+#SBATCH --partition=beards
 
 # NOTES:
 # SBATCH --ntasks-per-node and --gres, training.devices need to be the same
@@ -42,16 +42,17 @@ srun --time=2:00:00 python src/train.py \
 'hydra.run.dir=${paths.output_dir}' \
 'datamodule.batch_size=64' \
 'datamodule.num_workers=16' \
-'module.lr=1e-3' \
+'module.lr=1e-4' \
 'module.momentum=0.0' \
 'module.nesterov=false' \
-'module.weight_decay=0.0' \
-'module.use_pretrained=false' \
+'module.weight_decay=0.001' \
+'module.use_pretrained=true' \
 'module.fine_tune=true' \
+'module.patience=5' \
 'module.use_saved_model=false' \
 'trainer.num_nodes=1' \
 'trainer.precision=32-true' \
-'trainer.max_epochs=50' \
+'trainer.max_epochs=10' \
 'trainer.accelerator=auto' \
 'trainer.strategy=auto' \
 'trainer.devices=auto' \
@@ -59,6 +60,7 @@ srun --time=2:00:00 python src/train.py \
 'trainer.gradient_clip_val=null' \
 'trainer.gradient_clip_algorithm=norm' \
 'trainer.profiler=simple' \
+'callback_early_stopping.patience=20' \
 'paths.output_dir='${OUTPUT_DIR} \
 'paths.data_dir=/home/angelos.toutsios.gr/data/CS4321/HW1/teamsmt/data' \
 

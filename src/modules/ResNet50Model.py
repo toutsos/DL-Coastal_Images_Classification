@@ -34,14 +34,23 @@ class COASTALResNet50(pl.LightningModule,):
         self.lr = config["lr"]
         self.frozen_layers = config["frozen_layers"]
 
+        self.test_step_outputs = []
+
 
         if self.use_pretrained:
             # model = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1, num_classes=self.num_classes)
+            print('-'*50)
             print("Using pretrained model with ResNet50_Weights.IMAGENET1K_V1")
+            print('-'*50)
             self.backbone = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
         else:
+            print('-'*50)
             print("Using model without pretrained weights")
+            print('-'*50)
             self.backbone = torchvision.models.resnet50(weights=None)
+
+        # Replace avg pooling with max pooling
+        self.backbone.avgpool = nn.AdaptiveMaxPool2d((1, 1))
 
         # Get the number of input features for the fc before removing it
         input_features = self.backbone.fc.in_features
@@ -56,12 +65,12 @@ class COASTALResNet50(pl.LightningModule,):
           nn.ReLU(),
           nn.Dropout(0.5),  # Dropout for regularization
 
-          nn.Linear(1024, 512),  # Second hidden layer
-          nn.BatchNorm1d(512),
-          nn.ReLU(),
-          nn.Dropout(0.5),
+          # nn.Linear(1024, 512),  # Second hidden layer
+          # nn.BatchNorm1d(512),
+          # nn.ReLU(),
+          # nn.Dropout(0.4),
 
-          nn.Linear(512, 256),  # Third hidden layer
+          nn.Linear(1024, 256),  # Third hidden layer
           nn.BatchNorm1d(256),
           nn.ReLU(),
           nn.Dropout(0.5),
@@ -88,18 +97,26 @@ class COASTALResNet50(pl.LightningModule,):
 
         # Apply freezing logic
         if self.fine_tune == False:
+            print('-'*50)
             print("Freezing all layers except the classifier")
+            print('-'*50)
             self.freeze_backbone()  # Freeze all layers except the classifier
         else:
+            print('-'*50)
             print("Fine-tuning all layers")
+            print('-'*50)
 
         # Apply specific layer freezing logic
         # Requires that the model can be fine-tuned
         if self.fine_tune and self.frozen_layers:
+            print('-'*50)
             print("Specific layers for freeze, requested!")
             self.freeze_layers(self.frozen_layers)
+            print('-'*50)
         else:
+            print('-'*50)
             print("No specific layers for freeze requested!")
+            print('-'*50)
 
         # Batch normalization layer, already implemented in ResNet-50
         # self.batch_norm = nn.BatchNorm2d(num_features=model.conv1.in_channels)
@@ -123,6 +140,7 @@ class COASTALResNet50(pl.LightningModule,):
           param.requires_grad = False
 
       # Print frozen and trainable layers for debugging
+      print('-'*50)
       print("Trainable layers after freeze_backbone():")
       for name, param in self.backbone.named_parameters():
           if param.requires_grad:
@@ -135,6 +153,7 @@ class COASTALResNet50(pl.LightningModule,):
       for name, param in self.backbone.named_parameters():
           if not param.requires_grad:
               print(f"  Backbone: {name}")
+      print('-'*50)
 
 
   def freeze_layers(self, frozen_layers):
@@ -148,6 +167,7 @@ class COASTALResNet50(pl.LightningModule,):
               param.requires_grad = False
 
       # Print frozen and trainable layers for debugging
+      print('-'*50)
       print("Trainable layers after freeze_layers():")
       for name, param in self.backbone.named_parameters():
           if param.requires_grad:
@@ -160,6 +180,7 @@ class COASTALResNet50(pl.LightningModule,):
       for name, param in self.backbone.named_parameters():
           if not param.requires_grad:
               print(f"  Backbone: {name}")
+      print('-'*50)
 
 
   def forward(self, x):
@@ -184,11 +205,15 @@ class COASTALResNet50(pl.LightningModule,):
         # Compute the predicted class labels
         preds = torch.argmax(logits, dim=1)
 
+        # Log learning rate
+        lr = self.trainer.optimizers[0].param_groups[0]['lr']
+
         # Log metrics
         self.log_dict(
             {
                 'loss': loss,
                 'acc': self.accuracy(preds, y),
+                'learning_rate': lr
             },
             sync_dist=True,
             on_step=False,
@@ -196,6 +221,7 @@ class COASTALResNet50(pl.LightningModule,):
             logger=True,
             prog_bar=True,
         )
+
 
         return loss # return loss for backpropagation
 
@@ -254,7 +280,6 @@ class COASTALResNet50(pl.LightningModule,):
 
         return test_loss
 
-
   def on_validation_epoch_end(self):
       if self.current_epoch > 1:
           plot_utils.plot_metrics(self.logger.log_dir)
@@ -266,6 +291,9 @@ class COASTALResNet50(pl.LightningModule,):
       # Extract embeddings and labels for visualization
       all_embeddings = []
       all_labels = []
+
+      y_true = np.concatenate([x['y_true'] for x in self.test_step_outputs])
+      y_pred = np.concatenate([x['y_pred'] for x in self.test_step_outputs])
 
       dataloader = self.trainer.datamodule.test_dataloader()
       self.eval()  # Ensure model is in eval mode
@@ -291,29 +319,67 @@ class COASTALResNet50(pl.LightningModule,):
       # Plot PCA and t-SNE visualizations
       plot_utils.plot_pca(all_embeddings, labels=all_labels, label_names=label_names, save_path=f"{self.logger.log_dir}/pca.png")
       plot_utils.plot_tsne(all_embeddings, labels=all_labels, label_names=label_names, save_path=f"{self.logger.log_dir}/tsne.png")
+      plot_utils.plot_confusion_matrix(y_true, y_pred, classes=label_names,save_path=f"{self.logger.log_dir}/confusion.png")
 
 
+  # SGD optimizer
+  # def configure_optimizers(self):
+
+  #    # Get parameters from backbone and classifier
+  #     backbone_params = self.backbone.named_parameters()
+  #     classifier_params = self.classifier.named_parameters()
+
+  #     optimizer = torch.optim.SGD(
+  #         params       = chain(self.backbone.parameters(), self.classifier.parameters()),
+  #         lr           = self.lr,
+  #         momentum     = self.momentum,
+  #         nesterov     = self.nesterov,
+  #         weight_decay = self.weight_decay,
+  #     )
+
+  #     scheduler = ReduceLROnPlateau(
+  #         optimizer = optimizer,
+  #         factor    = self.factor,
+  #         patience  = self.patience
+  #     )
+
+  #     return {
+  #         "optimizer": optimizer,
+  #         "lr_scheduler": {
+  #             "scheduler" : scheduler,
+  #             "interval"  : "epoch",
+  #             "frequency" : 1,
+  #             "monitor"   : "val_loss",
+  #         },
+  #     }
+
+
+  # Adam Optimizer
   def configure_optimizers(self):
-      optimizer = torch.optim.SGD(
-          params       = chain(self.backbone.parameters(), self.classifier.parameters()),
-          lr           = self.lr,
-          momentum     = self.momentum,
-          nesterov     = self.nesterov,
-          weight_decay = self.weight_decay,
-      )
 
-      scheduler = ReduceLROnPlateau(
-          optimizer = optimizer,
-          factor    = self.factor,
-          patience  = self.patience
-      )
+    # Get parameters from backbone and classifier
+    backbone_params = self.backbone.named_parameters()
+    classifier_params = self.classifier.named_parameters()
 
-      return {
-          "optimizer": optimizer,
-          "lr_scheduler": {
-              "scheduler" : scheduler,
-              "interval"  : "epoch",
-              "frequency" : 1,
-              "monitor"   : "val_loss",
-          },
-      }
+    optimizer = torch.optim.Adam(
+        params       = chain(self.backbone.parameters(), self.classifier.parameters()),
+        lr           = self.lr,
+        weight_decay = self.weight_decay,
+        betas        = (0.9, 0.999)  # Default values
+    )
+
+    scheduler = ReduceLROnPlateau(
+        optimizer = optimizer,
+        factor    = self.factor,
+        patience  = self.patience
+    )
+
+    return {
+        "optimizer": optimizer,
+        "lr_scheduler": {
+            "scheduler" : scheduler,
+            "interval"  : "epoch",
+            "frequency" : 1,
+            "monitor"   : "val_loss",
+        },
+    }

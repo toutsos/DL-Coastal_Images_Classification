@@ -34,24 +34,37 @@ def train(cfg):
     if cfg.module.use_saved_model:
       if cfg.module.load_model_path:
         # Use a pretrained model
+        print('-'*50)
         print(f"Loading model from checkpoint: {cfg.module.load_model_path}")
         # model: pl.LightningModule = COASTALResNet50.load_from_checkpoint(use_pretrained, fine_tune, frozenlayers, lr, cfg.module.load_model_path)
+        print(f"Model is trained with the next parameters:")
+        print(f"Pretrain = {cfg.module.use_pretrained}")
+        print(f"Fine Tune = {cfg.module.fine_tune}")
+        print(f"Frozen Layers = {cfg.module.frozen_layers}")
+        print(f"Learning Rate = {cfg.module.lr}")
+        print(f"Weight Decay = {cfg.module.weight_decay}")
+        print('-'*50)
 
         model = COASTALResNet50.load_from_checkpoint(
           cfg.module.load_model_path,
-          use_pretrained=cfg.module.use_pretrained,  # Override specific params
+          # use_pretrained=cfg.module.use_pretrained,  # Override specific params
+          weight_decay = cfg.module.weight_decay,
           fine_tune=cfg.module.fine_tune,
           frozen_layers=cfg.module.frozen_layers,
           lr=cfg.module.lr  # Example: Change learning rate
         )
 
       else:
+        print('-'*50)
         print("No checkpoint path provided, training from scratch.")
         model: pl.LightningModule = hydra.utils.instantiate(cfg.module)
+        print('-'*50)
     else:
       # No checkpoint path provided, train from scratch
+      print('-'*50)
       print("No checkpoint provided, training from scratch.")
       model: pl.LightningModule = hydra.utils.instantiate(cfg.module)
+      print('-'*50)
 
     trainer: pl.Trainer = hydra.utils.instantiate(cfg.trainer)
 
@@ -70,13 +83,15 @@ def train(cfg):
     try:
         # This method RESUMES the training from this checkpoint
         fit_kwargs['ckpt_path'] = cfg.ckpt_path
+        print('-'*50)
         print(f'Model is trained from checkpoint: {fit_kwargs["ckpt_path"]}')
+        print('-'*50)
     except Exception as e:
         pass
 
-    # print("------------------------------------------------------------------------------------------------------")
-    # print("Model Hyperparameters:\n", model.hparams)
-    # print("------------------------------------------------------------------------------------------------------")
+    print("------------------------------------------------------------------------------------------------------")
+    print("Model Hyperparameters:\n", model.hparams)
+    print("------------------------------------------------------------------------------------------------------")
     trainer.fit(**fit_kwargs)
 
     print("Starting test phase...")

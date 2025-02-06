@@ -4,6 +4,9 @@ import numpy as np
 
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+
 
 
 def plot_metrics(log_dir: str):
@@ -36,6 +39,17 @@ def plot_metrics(log_dir: str):
         plt.ylabel("Accuracy")
         plt.legend()
         plt.savefig(f"{log_dir}/accuracy.png")
+        plt.close()
+
+    if "learning_rate" in metrics_df.columns:
+        lr_df = metrics_df[["epoch", "learning_rate"]].dropna()
+        plt.figure()
+        plt.plot(lr_df["epoch"], lr_df["learning_rate"], marker="o", linestyle="-", label="Learning Rate")
+        plt.title("Learning Rate Schedule")
+        plt.xlabel("Epoch")
+        plt.ylabel("Learning Rate")
+        plt.legend()
+        plt.savefig(f"{log_dir}/learning_rate.png")
         plt.close()
 
 
@@ -113,4 +127,30 @@ def plot_tsne(embeddings, labels=None, label_names=None, perplexity=30, save_pat
 
     if save_path:
         plt.savefig(save_path, bbox_inches="tight")
+    plt.show()
+
+def plot_confusion_matrix(y_true, y_pred, classes, save_path):
+    print(f"Classes {classes}")
+
+    # Compute confusion matrix
+    cm = confusion_matrix(y_true, y_pred, labels=list(classes.keys()))
+
+    # Normalize by row (true labels) to get percentage (0 to 1)
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+    # Convert dictionary to list of class names
+    class_labels = list(classes.values())
+
+    # Create a plot
+    fig, ax = plt.subplots(figsize=(8, 6))
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_labels)
+    disp.plot(cmap=plt.cm.Blues, ax=ax, values_format=".2f")  # Show values as decimals (percentages)
+
+    # Rotate x-axis labels vertically
+    plt.xticks(rotation=90)
+
+    # Save figure if save_path is provided
+    if save_path:
+        plt.savefig(save_path, bbox_inches="tight")
+
     plt.show()
