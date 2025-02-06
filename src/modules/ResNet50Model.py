@@ -278,6 +278,10 @@ class COASTALResNet50(pl.LightningModule,):
             prog_bar=True,
         )
 
+        # Store outputs in a list
+        outputs = {'y_true': y.cpu().numpy(), 'y_pred': preds.cpu().numpy()}
+        self.test_step_outputs.append(outputs)
+
         return test_loss
 
   def on_validation_epoch_end(self):
