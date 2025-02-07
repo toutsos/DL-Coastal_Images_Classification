@@ -65,12 +65,12 @@ class COASTALResNet50(pl.LightningModule,):
           nn.ReLU(),
           nn.Dropout(0.5),  # Dropout for regularization
 
-          # nn.Linear(1024, 512),  # Second hidden layer
-          # nn.BatchNorm1d(512),
-          # nn.ReLU(),
-          # nn.Dropout(0.4),
+          nn.Linear(1024, 512),  # Second hidden layer
+          nn.BatchNorm1d(512),
+          nn.ReLU(),
+          nn.Dropout(0.4),
 
-          nn.Linear(1024, 256),  # Third hidden layer
+          nn.Linear(512, 256),  # Third hidden layer
           nn.BatchNorm1d(256),
           nn.ReLU(),
           nn.Dropout(0.5),
@@ -294,12 +294,14 @@ class COASTALResNet50(pl.LightningModule,):
 
       # Extract embeddings and labels for visualization
       all_embeddings = []
+      silhouette_embeddings = []
       all_labels = []
 
       y_true = np.concatenate([x['y_true'] for x in self.test_step_outputs])
       y_pred = np.concatenate([x['y_pred'] for x in self.test_step_outputs])
 
       dataloader = self.trainer.datamodule.test_dataloader()
+
       self.eval()  # Ensure model is in eval mode
       device = next(self.parameters()).device  # Get model device (CPU or GPU)
 
@@ -313,50 +315,29 @@ class COASTALResNet50(pl.LightningModule,):
               x = x.to(device)  # Move input to the same device as model
               y = y.to(device)
 
-              embeddings = self.backbone(x).cpu().numpy()  # Move output to CPU before converting to numpy
+              output = self.backbone(x)  # Move output to CPU before converting to numpy
+              embeddings = output.cpu().numpy()
               all_embeddings.append(embeddings)
               all_labels.append(y.cpu().numpy())  # Store labels as numpy arrays
 
+              for layer in self.classifier[:-1]:  # Process all layers except the last one
+                output = layer(output)
+              silh_embeddings = output.cpu().numpy()
+              silhouette_embeddings.append(silh_embeddings)
+
       all_embeddings = np.vstack(all_embeddings)
+
+      silhouette_embeddings = np.array(silhouette_embeddings, dtype=object)  # Avoids shape mismatch
+
       all_labels = np.concatenate(all_labels).flatten()  # ✅ Ensure 1D array
+      silhouette_embeddings = np.concatenate(silhouette_embeddings, axis=0)  # Flatten all batches into (total_samples, 256)
+
 
       # Plot PCA and t-SNE visualizations
       plot_utils.plot_pca(all_embeddings, labels=all_labels, label_names=label_names, save_path=f"{self.logger.log_dir}/pca.png")
       plot_utils.plot_tsne(all_embeddings, labels=all_labels, label_names=label_names, save_path=f"{self.logger.log_dir}/tsne.png")
       plot_utils.plot_confusion_matrix(y_true, y_pred, classes=label_names,save_path=f"{self.logger.log_dir}/confusion.png")
-
-
-  # SGD optimizer
-  # def configure_optimizers(self):
-
-  #    # Get parameters from backbone and classifier
-  #     backbone_params = self.backbone.named_parameters()
-  #     classifier_params = self.classifier.named_parameters()
-
-  #     optimizer = torch.optim.SGD(
-  #         params       = chain(self.backbone.parameters(), self.classifier.parameters()),
-  #         lr           = self.lr,
-  #         momentum     = self.momentum,
-  #         nesterov     = self.nesterov,
-  #         weight_decay = self.weight_decay,
-  #     )
-
-  #     scheduler = ReduceLROnPlateau(
-  #         optimizer = optimizer,
-  #         factor    = self.factor,
-  #         patience  = self.patience
-  #     )
-
-  #     return {
-  #         "optimizer": optimizer,
-  #         "lr_scheduler": {
-  #             "scheduler" : scheduler,
-  #             "interval"  : "epoch",
-  #             "frequency" : 1,
-  #             "monitor"   : "val_loss",
-  #         },
-  #     }
-
+      plot_utils.plot_silhouette_analysis(silhouette_embeddings, save_path=f"{self.logger.log_dir}/silhouete.png")
 
   # Adam Optimizer
   def configure_optimizers(self):
