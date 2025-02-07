@@ -48,7 +48,7 @@ srun --time=2:00:00 python src/evaluation.py \
 'module.weight_decay=0.0' \
 'module.use_pretrained=false' \
 'module.fine_tune=true' \
-'module.load_model_path="/home/angelos.toutsios.gr/data/CS4321/HW1/teamsmt/out/2025-02-06_18-37-49/lightning_logs/version_0/checkpoints/epoch=24-val_loss=0.32832.ckpt"' \
+'module.load_model_path="/home/angelos.toutsios.gr/data/CS4321/HW1/teamsmt/out/2025-02-06_17-53-35/lightning_logs/version_0/checkpoints/epoch=93-val_loss=0.48104.ckpt"' \
 'trainer.num_nodes=1' \
 'trainer.precision=32-true' \
 'trainer.max_epochs=10' \
