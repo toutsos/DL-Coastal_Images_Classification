@@ -65,12 +65,12 @@ class COASTALResNet50(pl.LightningModule,):
           nn.ReLU(),
           nn.Dropout(0.5),  # Dropout for regularization
 
-          nn.Linear(1024, 512),  # Second hidden layer
-          nn.BatchNorm1d(512),
-          nn.ReLU(),
-          nn.Dropout(0.4),
+          # nn.Linear(1024, 512),  # Second hidden layer
+          # nn.BatchNorm1d(512),
+          # nn.ReLU(),
+          # nn.Dropout(0.4),
 
-          nn.Linear(512, 256),  # Third hidden layer
+          nn.Linear(1024, 256),  # Third hidden layer
           nn.BatchNorm1d(256),
           nn.ReLU(),
           nn.Dropout(0.5),
