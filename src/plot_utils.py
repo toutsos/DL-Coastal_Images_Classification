@@ -1,17 +1,12 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-
 import matplotlib.cm as cm
-
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import silhouette_score, silhouette_samples
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_samples, silhouette_score
-
-
 
 
 def plot_metrics(log_dir: str):
@@ -44,17 +39,6 @@ def plot_metrics(log_dir: str):
         plt.ylabel("Accuracy")
         plt.legend()
         plt.savefig(f"{log_dir}/accuracy.png")
-        plt.close()
-
-    if "learning_rate" in metrics_df.columns:
-        lr_df = metrics_df[["epoch", "learning_rate"]].dropna()
-        plt.figure()
-        plt.plot(lr_df["epoch"], lr_df["learning_rate"], marker="o", linestyle="-", label="Learning Rate")
-        plt.title("Learning Rate Schedule")
-        plt.xlabel("Epoch")
-        plt.ylabel("Learning Rate")
-        plt.legend()
-        plt.savefig(f"{log_dir}/learning_rate.png")
         plt.close()
 
 
@@ -134,31 +118,51 @@ def plot_tsne(embeddings, labels=None, label_names=None, perplexity=30, save_pat
         plt.savefig(save_path, bbox_inches="tight")
     plt.show()
 
-def plot_confusion_matrix(y_true, y_pred, classes, save_path):
-    print(f"Classes {classes}")
 
-    # Compute confusion matrix
-    cm = confusion_matrix(y_true, y_pred, labels=list(classes.keys()))
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
 
-    # Normalize by row (true labels) to get percentage (0 to 1)
-    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+def plot_confusion_matrix(preds, labels, label_names, save_path):
+    # Calculate confusion matrix
+    cm = confusion_matrix(labels, preds)
+    
+    # Normalize by row (i.e., by the actual number of instances per class)
+    cm_normalized = cm.astype('float') / cm.sum(axis=1, keepdims=True)
+    cm_normalized = np.nan_to_num(cm_normalized)  # Handle division by zero cases
+    
+    # Plot normalized confusion matrix (8x8 grid)
+    fig, ax = plt.subplots(figsize=(8, 8))
+    cax = ax.matshow(cm_normalized, cmap='Blues')  # Create a matrix plot
+    
+    # Add color bar and match its height with the plot
+    cbar = fig.colorbar(cax, ax=ax, fraction=0.046, pad=0.04)
+    cbar.ax.set_ylabel("Intensity", rotation=270, labelpad=15)  # Rotate label for readability
+    
+    ax.set_title('Normalized Confusion Matrix')
+    ax.set_xlabel('Predicted Labels')
+    ax.set_ylabel('True Labels')
+    
+    # Set tick labels (class names)
+    ax.set_xticks(np.arange(len(label_names)))
+    ax.set_yticks(np.arange(len(label_names)))
+    ax.set_xticklabels(list(label_names.values()))
+    ax.set_yticklabels(list(label_names.values()))
+    
+    # Rotate tick labels for better readability
+    plt.xticks(rotation=45)
+    
+    # Add annotations for each cell in the confusion matrix
+    for i in range(len(label_names)):
+        for j in range(len(label_names)):
+            ax.text(j, i, f'{cm_normalized[i, j]:.2f}', ha='center', va='center', 
+                    color='white' if cm_normalized[i, j] > 0.5 else 'black')
+    
+    plt.tight_layout()
+    plt.savefig(save_path)  # Save confusion matrix plot
+    print("Saved to:", save_path)
+    plt.close()  # Close the plot to free memory
 
-    # Convert dictionary to list of class names
-    class_labels = list(classes.values())
-
-    # Create a plot
-    fig, ax = plt.subplots(figsize=(8, 6))
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_labels)
-    disp.plot(cmap=plt.cm.Blues, ax=ax, values_format=".2f")  # Show values as decimals (percentages)
-
-    # Rotate x-axis labels vertically
-    plt.xticks(rotation=90)
-
-    # Save figure if save_path is provided
-    if save_path:
-        plt.savefig(save_path, bbox_inches="tight")
-
-    plt.show()
 
 def plot_silhouette_analysis(embeddings, save_path, range_n_clusters=[8]):
     """
