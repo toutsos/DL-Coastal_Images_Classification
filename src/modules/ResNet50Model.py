@@ -65,12 +65,12 @@ class COASTALResNet50(pl.LightningModule,):
           nn.ReLU(),
           nn.Dropout(0.5),  # Dropout for regularization
 
-          # nn.Linear(1024, 512),  # Second hidden layer
-          # nn.BatchNorm1d(512),
-          # nn.ReLU(),
-          # nn.Dropout(0.4),
+          nn.Linear(1024, 512),  # Second hidden layer
+          nn.BatchNorm1d(512),
+          nn.ReLU(),
+          nn.Dropout(0.4),
 
-          nn.Linear(1024, 256),  # Third hidden layer
+          nn.Linear(512, 256),  # Third hidden layer
           nn.BatchNorm1d(256),
           nn.ReLU(),
           nn.Dropout(0.5),
@@ -298,8 +298,8 @@ class COASTALResNet50(pl.LightningModule,):
       all_labels = []
       all_preds = []
 
-      # y_true = np.concatenate([x['y_true'] for x in self.test_step_outputs])
-      # y_pred = np.concatenate([x['y_pred'] for x in self.test_step_outputs])
+      y_true = np.concatenate([x['y_true'] for x in self.test_step_outputs])
+      y_pred = np.concatenate([x['y_pred'] for x in self.test_step_outputs])
 
       dataloader = self.trainer.datamodule.test_dataloader()
 
@@ -309,9 +309,6 @@ class COASTALResNet50(pl.LightningModule,):
       # Fetch dataset & extract label mapping
       dataset = dataloader.dataset  # Access the ImageFolder dataset
       label_names = {v: k for k, v in dataset.class_to_idx.items()}  # Maps indices to category names
-
-      for output in self.test_results:
-        all_preds.append(output['prediction'])
 
       with torch.no_grad():
           for batch in dataloader:
@@ -341,8 +338,7 @@ class COASTALResNet50(pl.LightningModule,):
       plot_utils.plot_pca(all_embeddings, labels=all_labels, label_names=label_names, save_path=f"{self.logger.log_dir}/pca.png")
       plot_utils.plot_tsne(all_embeddings, labels=all_labels, label_names=label_names, save_path=f"{self.logger.log_dir}/tsne.png")
 
-      # plot_utils.plot_confusion_matrix(y_true, y_pred, classes=label_names,save_path=f"{self.logger.log_dir}/confusion.png")
-      plot_utils.plot_confusion_matrix(preds=all_preds, labels=all_labels, label_names=label_names, save_path=f"{self.logger.log_dir}/confusion_matrix.png")
+      plot_utils.plot_confusion_matrix(y_true, y_pred, label_names,save_path=f"{self.logger.log_dir}/confusion.png")
       plot_utils.plot_silhouette_analysis(silhouette_embeddings, save_path=f"{self.logger.log_dir}/silhouete.png")
 
   # Adam Optimizer
