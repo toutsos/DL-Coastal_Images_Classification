@@ -57,5 +57,5 @@ the pixi environment is activated:
 - webdataset
 - scikit-learn
 
-More detais about the versions of each package you can find in the [Packages-Versions](pixi.lock)
+More detais about the versions of each package you can find in the [Packages-Versions](pixi.toml)
 
