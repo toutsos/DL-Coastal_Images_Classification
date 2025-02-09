@@ -41,6 +41,17 @@ def plot_metrics(log_dir: str):
         plt.savefig(f"{log_dir}/accuracy.png")
         plt.close()
 
+    if "learning_rate" in metrics_df.columns:
+        lr_df = metrics_df[["epoch", "learning_rate"]].dropna()
+        plt.figure()
+        plt.plot(lr_df["epoch"], lr_df["learning_rate"], marker="o", linestyle="-", label="Learning Rate")
+        plt.title("Learning Rate Schedule")
+        plt.xlabel("Epoch")
+        plt.ylabel("Learning Rate")
+        plt.legend()
+        plt.savefig(f"{log_dir}/learning_rate.png")
+        plt.close()
+
 
 
 def plot_pca(embeddings, labels=None, label_names=None, save_path=None):
@@ -119,45 +130,41 @@ def plot_tsne(embeddings, labels=None, label_names=None, perplexity=30, save_pat
     plt.show()
 
 
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
-
 def plot_confusion_matrix(preds, labels, label_names, save_path):
     # Calculate confusion matrix
     cm = confusion_matrix(labels, preds)
-    
+
     # Normalize by row (i.e., by the actual number of instances per class)
     cm_normalized = cm.astype('float') / cm.sum(axis=1, keepdims=True)
     cm_normalized = np.nan_to_num(cm_normalized)  # Handle division by zero cases
-    
+
     # Plot normalized confusion matrix (8x8 grid)
     fig, ax = plt.subplots(figsize=(8, 8))
     cax = ax.matshow(cm_normalized, cmap='Blues')  # Create a matrix plot
-    
+
     # Add color bar and match its height with the plot
     cbar = fig.colorbar(cax, ax=ax, fraction=0.046, pad=0.04)
     cbar.ax.set_ylabel("Intensity", rotation=270, labelpad=15)  # Rotate label for readability
-    
+
     ax.set_title('Normalized Confusion Matrix')
     ax.set_xlabel('Predicted Labels')
     ax.set_ylabel('True Labels')
-    
+
     # Set tick labels (class names)
     ax.set_xticks(np.arange(len(label_names)))
     ax.set_yticks(np.arange(len(label_names)))
     ax.set_xticklabels(list(label_names.values()))
     ax.set_yticklabels(list(label_names.values()))
-    
+
     # Rotate tick labels for better readability
     plt.xticks(rotation=45)
-    
+
     # Add annotations for each cell in the confusion matrix
     for i in range(len(label_names)):
         for j in range(len(label_names)):
-            ax.text(j, i, f'{cm_normalized[i, j]:.2f}', ha='center', va='center', 
+            ax.text(j, i, f'{cm_normalized[i, j]:.2f}', ha='center', va='center',
                     color='white' if cm_normalized[i, j] > 0.5 else 'black')
-    
+
     plt.tight_layout()
     plt.savefig(save_path)  # Save confusion matrix plot
     print("Saved to:", save_path)
