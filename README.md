@@ -1,49 +1,139 @@
-# CS4321 Midterm Project
- - Milanese Roberto
- - Singley Jarrad
- - Angelos Toutsios
+# DL-Coastal_Images_Classification
 
-### Description
+**Custom Deep Learning Pipeline for Coastal Image Classification**
 
-- For each model we've created its own `datamodule`,`model`,`config` and `run.sh` file.
-- We have our applied hyperparams for both our **Fixed** and **Finetuned** models in the `MidtermReport.docx`.
-- For all of our models we used a main template, but each one of us implemented some utilities with a minor different way.
-- Our results and graphs are in the `MidtermReport.docx`.
-- A detailed description of our script (.sh) files exist in the [Script Descriptions](scripts/descriptions.md)
+This project provides a streamlined deep learning framework for classifying coastal images using a ResNet50-based architecture. The pipeline is modular and fully configurable, making it easy to train, evaluate, and customize experiments.
 
+## Key Features
 
-## Setup Environment
+- **ResNet50 Model:**
+  A custom-implemented ResNet50 model for image classification tasks.
 
-For more information on using Pixi on Hamming and connecting to a GPU node, see the [Wiki](https://gitlab.nps.edu/cs4321/lightning_starter/-/wikis/home)
+- **Flexible Data Handling:**
+  Utilities for dataset preparation, normalization, and basic data checks.
 
-1. After connecting to Hamming, install Pixi if not already installed:
+- **Configurable Experiments:**
+  All key parameters (dataset path, batch size, epochs, optimizer settings) are controlled via YAML configs.
 
-    `curl -fsSL https://pixi.sh/install.sh | bash`
+- **Training & Evaluation Scripts:**
+  Easy-to-run shell scripts for both training and evaluation.
 
+- **Pixi Environment:**
+  Ensures fully reproducible environments via `pixi.toml`.
 
-2. Start a session on Hamming with a GPU. For example:
+---
 
-    `salloc -p genai --gres=gpu:1`
+## Installation
 
+1️⃣ **Clone the repository:**
 
-3. While in the project directory, install the environment with the following:
+```bash
+git clone https://github.com/toutsos/DL-Coastal_Images_Classification.git
+cd DL-Coastal_Images_Classification
+```
 
-    `pixi install`
+2️⃣ **Set up the Pixi environment:**
 
-   It is important to be on a node with GPU(s) allocated. Otherwise, the above will not work.
+```bash
+pixi install
+```
 
+---
 
-4. Exit the GPU session:
+## Training
 
-    `exit`
+Run the training script:
 
+```bash
+bash scripts/COASTresnet50.sh
+```
 
-5. For sbatch scripts, add the following before the execution of your python script so that
-the pixi environment is activated:
+This will:
 
-    `eval "$(pixi shell-hook -s bash)"`
+- Load the dataset using the configuration in `configs/COASTresnet50.yaml`
+- Train the ResNet50 model
+- Save checkpoints and logs
 
-## Project packages:
+---
+
+## Evaluation
+
+To evaluate the trained model:
+
+```bash
+bash scripts/evaluation.sh
+```
+
+---
+
+## Modifying Hyperparameters
+
+Edit the YAML config file in `configs/` (e.g., `COASTresnet50.yaml`) to change:
+
+- Dataset path
+- Batch size
+- Number of epochs
+- Learning rate & optimizer parameters
+- Image size & normalization settings
+
+Example snippet from the YAML:
+
+```yaml
+batch_size: 32
+num_epochs: 50
+learning_rate: 0.001
+dataset_path: /path/to/your/dataset
+```
+
+---
+
+## Metrics & Logging
+
+During training and evaluation, you'll see:
+
+- **Training & Validation Accuracy**
+- **Loss Curves**
+- **Confusion Matrix** and visualizations (via `plot_utils.py`)
+
+Logs and outputs are saved to the specified directory in your config.
+
+---
+
+## 🗂️ Repository Structure
+
+```
+├── configs/
+│   └── COASTresnet50.yaml          # Configuration file
+├── scripts/
+│   ├── COASTresnet50.sh            # Training script
+│   └── evaluation.sh               # Evaluation script
+├── src/
+│   ├── train.py                    # Training entry point
+│   ├── evaluation.py               # Evaluation logic
+│   ├── datamodules/
+│   │   └── dataset.py              # Dataset loader
+│   └── modules/
+│       └── ResNet50Model.py        # ResNet50 architecture
+├── pixi.toml                       # Environment specification
+├── README.md
+└── .gitignore
+```
+
+---
+
+## How to Extend
+
+- **New Dataset:**
+  Modify the dataset loader in `datamodules/dataset.py` to handle new formats.
+
+- **Model Tweaks:**
+  Customize or extend `modules/ResNet50Model.py` to experiment with new architectures.
+
+- **New Configs:**
+  Duplicate the YAML config and adjust as needed for new experiments.
+
+## Project dependencies:
+
 - pytorch
 - lightning
 - torchmetrics
@@ -58,4 +148,3 @@ the pixi environment is activated:
 - scikit-learn
 
 More detais about the versions of each package you can find in the [Packages-Versions](pixi.toml)
-
